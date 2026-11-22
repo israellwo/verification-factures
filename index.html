@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérifier une facture — Ilmtechlwo_pro</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f7fa; --fg:#14212e; --card:#ffffff; --line:#d3dce5; --ok:#1b7f3b; --warn:#b26a00; --bad:#c62828; --accent:#0b6e99; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e1620; --fg:#e8eef4; --card:#17222e; --line:#2c3b4a; --ok:#4cd07d; --warn:#ffb74d; --bad:#ff7b72; --accent:#5ec8f2; } }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 8px 0 4px; }
+  p.sub { margin: 0 0 16px; opacity: .8; font-size: .95rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:14px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input { width:100%; box-sizing:border-box; font-size:1.2rem; letter-spacing:.08em; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); text-transform:uppercase; }
+  button { margin-top:12px; width:100%; font-size:1.05rem; font-weight:700; padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .res-title { font-weight:800; font-size:1.05rem; margin-bottom:8px; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  dl { display:grid; grid-template-columns: 9.5rem 1fr; gap:6px 10px; margin:0; }
+  dt { opacity:.7; } dd { margin:0; font-weight:600; word-break:break-word; }
+  small { display:block; margin-top:10px; opacity:.75; line-height:1.4; }
+  footer { margin-top:24px; font-size:.8rem; opacity:.65; line-height:1.4; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vérifier une facture</h1>
+  <p class="sub">Entrez le code de vérification imprimé au bas d’une facture ou d’un avoir émis avec Ilmtechlwo_pro.</p>
+  <div class="card">
+    <label for="code">Code de vérification</label>
+    <input id="code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-JKLM">
+    <button id="go" type="button">Vérifier</button>
+  </div>
+  <div id="out" class="card" hidden></div>
+  <footer>
+    Cette page ne montre jamais le nom du client ni les montants. Seuls le type, le numéro, la date d’émission, le statut, le nom de l’émetteur et une empreinte sont affichés.
+    Comparez l’empreinte avec celle imprimée sur le document : si elle est différente, le document a été modifié.
+    Ilmtechlwo_pro n’est pas un système de facturation certifié par l’administration fiscale.
+  </footer>
+</main>
+<script>
+(function () {
+  // Adresse et clé PUBLIQUE du projet (la même que dans l'application). Jamais la clé de service.
+  var URL_BASE = 'https://bhaqnasfytithptrzplb.supabase.co';
+  var KEY = 'sb_publishable_RS0fGhSo_-BPqGlT0f6M6Q_UDImvR0A';
+  var input = document.getElementById('code');
+  var go = document.getElementById('go');
+  var out = document.getElementById('out');
+
+  function clean(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function show(cls, title, rows, note) {
+    out.hidden = false;
+    out.textContent = '';
+    var t = document.createElement('div');
+    t.className = 'res-title ' + cls;
+    t.textContent = title;
+    out.appendChild(t);
+    if (rows && rows.length) {
+      var dl = document.createElement('dl');
+      rows.forEach(function (r) {
+        var dt = document.createElement('dt'); dt.textContent = r[0];
+        var dd = document.createElement('dd'); dd.textContent = r[1];
+        dl.appendChild(dt); dl.appendChild(dd);
+      });
+      out.appendChild(dl);
+    }
+    if (note) { var s = document.createElement('small'); s.textContent = note; out.appendChild(s); }
+  }
+  function status(s) { return s === 'issued' ? 'Émise' : (s === 'cancelled' ? 'Annulée' : (s || '—')); }
+
+  function check() {
+    var code = clean(input.value);
+    if (code.length !== 12) { show('bad', 'Code incomplet', null, 'Le code a 12 caractères (lettres et chiffres), par exemple ABCD-EFGH-JKLM.'); return; }
+    go.disabled = true; go.textContent = 'Vérification…';
+    fetch(URL_BASE + '/rest/v1/rpc/verify_invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': KEY },
+      body: JSON.stringify({ p_code: code })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function (r) {
+      if (!r || r.authentic !== true) {
+        show('bad', 'Code inconnu', null, 'Aucune facture ne porte ce code. Vérifiez la saisie. Si le code est correct, ce document n’est pas enregistré : ne le considérez pas comme vérifié.');
+        return;
+      }
+      var cancelled = r.status === 'cancelled';
+      show(cancelled ? 'warn' : 'ok', cancelled ? 'Code reconnu, mais ce document est ANNULÉ' : 'Code reconnu : ce document est enregistré', [
+        ['Type', r.kind === 'avoir' ? 'Avoir' : 'Facture'],
+        ['Numéro', r.number || '—'],
+        ['Date d’émission', r.issued_on || '—'],
+        ['Émetteur', r.issuer || '—'],
+        ['Statut', status(r.status)],
+        ['Empreinte', r.fingerprint || '—']
+      ], 'Comparez l’empreinte avec celle imprimée au bas du document.');
+    }).catch(function () {
+      show('bad', 'Vérification impossible', null, 'Le serveur n’a pas répondu. Vérifiez votre connexion internet et réessayez.');
+    }).then(function () { go.disabled = false; go.textContent = 'Vérifier'; });
+  }
+  go.addEventListener('click', check);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') check(); });
+  var p = new URLSearchParams(location.search).get('code');
+  if (p) { input.value = p; check(); }
+})();
+</script>
+</body>
+</html>
