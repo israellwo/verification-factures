@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supprimer mon compte — Ilmtechlwo_pro</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f7fa; --fg:#14212e; --card:#ffffff; --line:#d3dce5; --ok:#1b7f3b; --warn:#b26a00; --bad:#c62828; --accent:#0b6e99; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e1620; --fg:#e8eef4; --card:#17222e; --line:#2c3b4a; --ok:#4cd07d; --warn:#ffb74d; --bad:#ff7b72; --accent:#5ec8f2; } }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width: 600px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  p, li { line-height: 1.45; }
+  p.sub { margin: 0 0 16px; opacity: .8; font-size: .95rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:14px; }
+  ul { margin: 6px 0 0; padding-left: 20px; }
+  label { display:block; font-weight:600; margin: 10px 0 6px; }
+  input[type=email], input[type=password] { width:100%; box-sizing:border-box; font-size:1.05rem; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+  .check { display:flex; gap:10px; align-items:flex-start; margin-top:14px; font-weight:400; }
+  .check input { margin-top:4px; }
+  button { margin-top:14px; width:100%; font-size:1.05rem; font-weight:700; padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  button.danger { background:#c62828; }
+  button.go { background:#1b7f3b; }
+  button:disabled { opacity:.55; cursor:default; }
+  .msg { margin-top:12px; font-weight:700; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  small { display:block; margin-top:10px; opacity:.75; line-height:1.4; }
+  footer { margin-top:24px; font-size:.8rem; opacity:.65; line-height:1.4; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Supprimer mon compte Ilmtechlwo_pro</h1>
+  <p class="sub">Cette page permet de demander la suppression de votre compte et de vos données, sans passer par l’application. Vous pouvez aussi le faire dans l’application, depuis le profil.</p>
+
+  <div class="card">
+    <h2>Ce qui se passe</h2>
+    <ul>
+      <li><strong>Délai de 30 jours.</strong> Après votre demande, votre compte est mis en attente. Vous pouvez annuler pendant ces 30 jours en vous reconnectant ici. Passé ce délai, la suppression est définitive et ne peut plus être annulée.</li>
+      <li><strong>Pendant le délai</strong>, vos publications et votre fiche dans l’annuaire sont masquées.</li>
+      <li><strong>Supprimés définitivement :</strong> votre profil, vos véhicules, votre carnet d’entretien, vos devis, vos publications, commentaires et « j’aime », vos candidatures et les documents envoyés avec elles (pièces d’identité, justificatifs), vos métiers, et vos messages dans les conversations à deux.</li>
+      <li><strong>Conservés sans votre identité :</strong> les factures émises (le nom et la signature de l’émetteur sont retirés ; les informations des clients qui figurent sur ces factures restent dans le document), l’historique des commissions (montants et dates), vos messages dans les groupes (ils s’affichent sans nom) et les signalements. Ces éléments sont gardés le temps nécessaire aux obligations comptables et de sécurité.</li>
+      <li><strong>Vos données sur votre téléphone</strong> (véhicules et carnet qui n’ont pas encore été envoyés au serveur) seront perdues : elles n’existent que sur votre téléphone.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="loginCard">
+    <h2>1. Connectez-vous</h2>
+    <label for="email">Adresse e-mail du compte</label>
+    <input id="email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false">
+    <label for="pw">Mot de passe</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button id="login" type="button">Se connecter</button>
+    <div id="loginMsg" class="msg" role="status"></div>
+    <small>Mot de passe oublié ? Utilisez « Mot de passe oublié » dans l’application, puis revenez ici.</small>
+  </div>
+
+  <div class="card" id="actionCard" hidden>
+    <h2>2. Votre demande</h2>
+    <p id="state"></p>
+    <div id="requestBox" hidden>
+      <label class="check"><input id="sure" type="checkbox"><span>Je comprends que mon compte et mes données seront supprimés définitivement dans 30 jours, sauf si j’annule avant.</span></label>
+      <button id="request" type="button" class="danger" disabled>Demander la suppression de mon compte</button>
+    </div>
+    <div id="cancelBox" hidden>
+      <button id="cancel" type="button" class="go">Annuler la suppression</button>
+    </div>
+    <div id="actionMsg" class="msg" role="status"></div>
+  </div>
+
+  <footer>
+    Votre mot de passe sert uniquement à confirmer que la demande vient de vous. Il n’est ni affiché ni conservé par cette page.
+    Seule la personne connectée peut demander la suppression de son propre compte.
+  </footer>
+</main>
+<script>
+(function () {
+  var URL_BASE = 'https://bhaqnasfytithptrzplb.supabase.co';
+  var KEY = 'sb_publishable_RS0fGhSo_-BPqGlT0f6M6Q_UDImvR0A';
+  var token = '';
+  var password = '';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function say(id, cls, text) { var e = $(id); e.className = 'msg ' + cls; e.textContent = text; }
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { return String(iso || ''); }
+  }
+  function errText(code) {
+    var m = {
+      bad_password: 'Mot de passe incorrect.',
+      not_authenticated: 'Votre connexion a expiré. Reconnectez-vous.',
+      password_required: 'Entrez votre mot de passe.',
+      request_failed: 'La demande n’a pas pu être enregistrée. Réessayez dans un instant.',
+      cancel_failed: 'L’annulation n’a pas pu être enregistrée. Réessayez dans un instant.'
+    };
+    return m[code] || 'Une erreur est survenue. Réessayez dans un instant.';
+  }
+  function callFn(body) {
+    return fetch(URL_BASE + '/functions/v1/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json().catch(function () { return {}; }); });
+  }
+  function loadState() {
+    return fetch(URL_BASE + '/rest/v1/rpc/account_deletion_status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': 'Bearer ' + token },
+      body: '{}'
+    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (s) {
+        $('actionCard').hidden = false;
+        $('actionMsg').textContent = '';
+        if (s && s.pending) {
+          $('state').textContent = 'Une suppression est déjà prévue le ' + fmtDate(s.scheduled_for) + '. Vous pouvez l’annuler tant que cette date n’est pas passée.';
+          $('requestBox').hidden = true; $('cancelBox').hidden = false;
+        } else {
+          $('state').textContent = 'Aucune suppression n’est en cours pour ce compte.';
+          $('requestBox').hidden = false; $('cancelBox').hidden = true;
+        }
+      });
+  }
+
+  $('login').addEventListener('click', function () {
+    var email = $('email').value.trim(); var pw = $('pw').value;
+    if (!email || !pw) { say('loginMsg', 'bad', 'Entrez votre e-mail et votre mot de passe.'); return; }
+    var b = $('login'); b.disabled = true; b.textContent = 'Connexion…'; say('loginMsg', '', '');
+    fetch(URL_BASE + '/auth/v1/token?grant_type=password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': KEY },
+      body: JSON.stringify({ email: email, password: pw })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.access_token) { say('loginMsg', 'bad', 'E-mail ou mot de passe incorrect.'); return null; }
+        token = res.j.access_token; password = pw; $('pw').value = '';
+        say('loginMsg', 'ok', 'Connecté.');
+        return loadState();
+      })
+      .catch(function () { say('loginMsg', 'bad', 'Le serveur n’a pas répondu. Vérifiez votre connexion internet et réessayez.'); })
+      .then(function () { b.disabled = false; b.textContent = 'Se connecter'; });
+  });
+
+  $('sure').addEventListener('change', function () { $('request').disabled = !$('sure').checked; });
+
+  $('request').addEventListener('click', function () {
+    var b = $('request'); b.disabled = true; b.textContent = 'Envoi…';
+    callFn({ action: 'request', password: password }).then(function (r) {
+      if (r && r.ok) {
+        password = ''; token = '';
+        $('requestBox').hidden = true; $('cancelBox').hidden = true;
+        $('state').textContent = '';
+        say('actionMsg', 'ok', 'Demande enregistrée. Votre compte sera supprimé définitivement le ' + fmtDate(r.scheduled_for) + '. Vous avez été déconnecté. Pour annuler avant cette date, revenez sur cette page et reconnectez-vous.');
+      } else {
+        say('actionMsg', 'bad', errText(r && r.error));
+        b.disabled = !$('sure').checked;
+      }
+    }).catch(function () { say('actionMsg', 'bad', 'Le serveur n’a pas répondu. Réessayez.'); b.disabled = !$('sure').checked; })
+      .then(function () { b.textContent = 'Demander la suppression de mon compte'; });
+  });
+
+  $('cancel').addEventListener('click', function () {
+    var b = $('cancel'); b.disabled = true; b.textContent = 'Annulation…';
+    callFn({ action: 'cancel' }).then(function (r) {
+      if (r && r.ok) {
+        $('cancelBox').hidden = true; $('state').textContent = '';
+        say('actionMsg', 'ok', 'La suppression est annulée. Votre compte et vos publications sont rétablis.');
+      } else if (r && r.ok === false) {
+        say('actionMsg', 'warn', 'Cette suppression ne peut plus être annulée.');
+      } else {
+        say('actionMsg', 'bad', errText(r && r.error));
+      }
+    }).catch(function () { say('actionMsg', 'bad', 'Le serveur n’a pas répondu. Réessayez.'); })
+      .then(function () { b.disabled = false; b.textContent = 'Annuler la suppression'; });
+  });
+})();
+</script>
+</body>
+</html>
